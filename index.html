@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seis3D — проект веб-сервиса дизайна 3D сейсморазведки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f5f5f7;--surface:#ffffff;--text:#1d1d1f;--text2:#6e6e73;--sep:rgba(60,60,67,.2);
+  --accent:#0071e3;--rcv:#0071e3;--src:#ff2d55;--ok:#34c759;--warn:#ff9f0a;--purple:#af52de;
+  --glass:rgba(255,255,255,.74);--fill:rgba(118,118,128,.12);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#000;--surface:#1c1c1e;--text:#f5f5f7;--text2:#98989d;--sep:rgba(84,84,88,.65);
+    --accent:#2997ff;--rcv:#0a84ff;--src:#ff375f;--glass:rgba(28,28,30,.74);--fill:rgba(118,118,128,.24);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000;--surface:#1c1c1e;--text:#f5f5f7;--text2:#98989d;--sep:rgba(84,84,88,.65);
+  --accent:#2997ff;--rcv:#0a84ff;--src:#ff375f;--glass:rgba(28,28,30,.74);--fill:rgba(118,118,128,.24);color-scheme:dark;
+}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);scroll-behavior:smooth}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter","Helvetica Neue",Arial,sans-serif;
+  font-size:17px;line-height:1.47;letter-spacing:-.022em;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--glass);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep)}
+.topbar .in{max-width:1200px;margin:0 auto;height:52px;display:flex;align-items:center;gap:28px;padding:0 22px}
+.brand{font-weight:600;font-size:19px;letter-spacing:-.025em;display:flex;gap:9px;align-items:center;white-space:nowrap}
+.nav{display:flex;gap:22px;overflow-x:auto;scrollbar-width:none}
+.nav a{color:var(--text);opacity:.8;text-decoration:none;font-size:13px;white-space:nowrap}
+.nav a:hover{opacity:1}
+
+.wrap{max-width:1200px;margin:0 auto;padding:0 22px}
+.hero{text-align:center;padding:80px 0 0}
+.hero .kicker{color:var(--text2);font-size:19px;margin:0 0 6px;letter-spacing:-.015em}
+.hero h1{font-size:clamp(46px,8vw,96px);line-height:1.02;letter-spacing:-.05em;font-weight:700;margin:0}
+.hero p{font-size:clamp(19px,2.3vw,26px);color:var(--text2);max-width:32ch;margin:20px auto 0;line-height:1.3;letter-spacing:-.015em}
+.heroviz{margin:56px auto 0;max-width:1100px;background:var(--surface);border-radius:28px;overflow:hidden;position:relative}
+.heroviz svg{display:block;width:100%;height:auto}
+.heroviz .tag{position:absolute;left:20px;bottom:18px;display:flex;gap:16px;font-size:13px;color:var(--text2);flex-wrap:wrap;
+  background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:8px 14px;border-radius:12px;border:1px solid var(--sep)}
+.key{display:inline-flex;align-items:center;gap:6px}
+.key i{width:16px;height:3px;border-radius:2px;display:inline-block}
+
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--sep);border-radius:22px;overflow:hidden;margin-top:20px}
+.meta div{background:var(--surface);padding:20px 22px}
+.meta b{display:block;font-size:15px;font-weight:600;letter-spacing:-.015em}
+.meta span{font-size:13px;color:var(--text2)}
+
+section.s{padding:120px 0 0}
+.s h2{font-size:clamp(36px,5vw,60px);letter-spacing:-.045em;line-height:1.05;margin:0 0 14px;font-weight:700}
+.s .lead{font-size:clamp(18px,1.9vw,22px);color:var(--text2);max-width:56ch;margin:0 0 40px;line-height:1.4;letter-spacing:-.015em}
+
+.prompts{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.prompt{background:var(--surface);border-radius:24px;padding:30px 28px;display:flex;flex-direction:column;gap:14px}
+.prompt .n{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;color:#fff;font-size:17px}
+.prompt h3{font-size:26px;letter-spacing:-.035em;margin:0;line-height:1.12}
+.prompt q{color:var(--text2);font-size:15px;line-height:1.45;quotes:"«" "»"}
+.prompt ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:15px}
+.prompt li{display:flex;gap:10px;line-height:1.4}
+.prompt li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--text2);margin-top:8px}
+
+.flow{background:var(--surface);border-radius:24px;padding:28px;overflow-x:auto}
+.flow svg{display:block;min-width:900px;width:100%;height:auto}
+
+.users{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.user{background:var(--surface);border-radius:22px;padding:26px}
+.user h4{margin:0 0 6px;font-size:19px;letter-spacing:-.02em}
+.user p{margin:0;color:var(--text2);font-size:15px}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.card{background:var(--surface);border-radius:24px;padding:28px}
+.card h3{font-size:22px;letter-spacing:-.03em;margin:0 0 6px}
+.card .sub{color:var(--text2);font-size:15px;margin:0 0 18px}
+.card svg{display:block;width:100%;height:auto}
+
+table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+th{font-weight:400;color:var(--text2);font-size:13px;text-align:left;padding:0 12px 10px 0;border-bottom:1px solid var(--sep)}
+td{padding:12px 12px 12px 0;border-bottom:1px solid var(--sep);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.tw{overflow-x:auto}
+
+.formulas{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.f{background:var(--surface);border-radius:22px;padding:24px 24px 22px}
+.f span{display:block;color:var(--text2);font-size:13px;margin-bottom:10px}
+.f code{font-family:inherit;font-size:19px;font-weight:500;letter-spacing:-.02em;line-height:1.35;display:block}
+.f em{display:block;font-style:normal;color:var(--text2);font-size:13px;margin-top:10px}
+
+.reqgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+.req{background:var(--surface);border-radius:22px;padding:24px 26px}
+.req h4{margin:0 0 12px;font-size:19px;letter-spacing:-.02em;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.req h4 small{font-weight:400;color:var(--text2);font-size:13px}
+.req ul{list-style:none;margin:0;padding:0;font-size:15px}
+.req li{display:grid;grid-template-columns:52px 1fr auto;gap:10px;padding:9px 0;border-top:1px solid var(--sep);line-height:1.38}
+.req li:first-child{border-top:0}
+.req .id{color:var(--text2);font-size:13px;font-variant-numeric:tabular-nums;padding-top:1px}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:980px;height:fit-content;white-space:nowrap}
+.pill.must{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.pill.should{background:var(--fill);color:var(--text2)}
+
+.design{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:6px}
+.sw{display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2)}
+.sw i{display:block;aspect-ratio:1;border-radius:16px;border:1px solid var(--sep)}
+.sw b{color:var(--text);font-weight:500;font-size:13px}
+.ios{background:var(--bg);border-radius:18px;padding:16px}
+.ios .grp{font-size:12px;color:var(--text2);margin:0 0 6px 14px}
+.ios .lst{background:var(--surface);border-radius:12px}
+.ios .rw{display:flex;justify-content:space-between;padding:11px 14px;font-size:15px;position:relative}
+.ios .rw+.rw::before{content:"";position:absolute;left:14px;right:0;top:0;height:1px;background:var(--sep)}
+.ios .rw span:last-child{color:var(--text2);font-variant-numeric:tabular-nums}
+.segdemo{display:inline-flex;background:var(--fill);border-radius:9px;padding:2px;margin-top:16px}
+.segdemo span{font-size:13px;padding:5px 14px;border-radius:7px}
+.segdemo span.on{background:var(--surface);box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.b{border-radius:980px;padding:9px 18px;font-size:15px;background:var(--accent);color:#fff}
+.b.g{background:var(--fill);color:var(--text)}
+.layout{display:grid;gap:8px;margin-top:16px;font-size:13px;color:var(--text2)}
+.layout div{background:var(--fill);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between}
+.layout div b{color:var(--text);font-weight:500}
+
+.sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.sheet{background:var(--surface);border-radius:18px;padding:20px;position:relative;overflow:hidden}
+.sheet::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#1d6f42}
+.sheet b{display:block;font-size:17px;letter-spacing:-.02em;margin-bottom:4px}
+.sheet span{font-size:13px;color:var(--text2);line-height:1.4;display:block}
+.exrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:20px}
+
+.checks{background:var(--surface);border-radius:24px;padding:10px 28px}
+.check{display:grid;grid-template-columns:28px 1fr auto;gap:14px;padding:18px 0;border-top:1px solid var(--sep);align-items:start}
+.check:first-child{border-top:0}
+.check svg{margin-top:2px}
+.check p{margin:0;font-size:16px;line-height:1.42}
+.check .val{font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+.road{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.road div{background:var(--surface);border-radius:18px;padding:18px 20px;font-size:15px;line-height:1.4}
+.road div span{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+
+.nfr{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--sep);border-radius:22px;overflow:hidden}
+.nfr div{background:var(--surface);padding:22px}
+.nfr b{display:block;font-size:17px;letter-spacing:-.02em;margin-bottom:4px}
+.nfr span{font-size:14px;color:var(--text2);line-height:1.4}
+
+footer{padding:110px 0 60px;color:var(--text2);font-size:12px}
+footer .line{border-top:1px solid var(--sep);padding-top:18px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .prompts,.users,.split,.design{grid-template-columns:1fr}
+  .nav{display:none}
+  section.s{padding-top:88px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:no-preference){
+  .heroviz .ln{stroke-dasharray:var(--l);stroke-dashoffset:var(--l);animation:draw 1.6s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:var(--d)}
+  @keyframes draw{to{stroke-dashoffset:0}}
+}
+</style>
+</head>
+<body>
+
+<nav class="topbar" aria-label="Разделы">
+  <div class="in">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><g fill="none" stroke-width="1.6" stroke-linecap="round"><path d="M2 7h18M2 11h18M2 15h18" stroke="currentColor"/><path d="M7 2v18M15 2v18" stroke="var(--src)"/></g></svg>
+      Seis3D
+    </div>
+    <div class="nav">
+      <a href="#goal">Цель</a>
+      <a href="#flow">Процесс</a>
+      <a href="#calc">Расчёт</a>
+      <a href="#req">Требования</a>
+      <a href="#design">Дизайн</a>
+      <a href="#export">Экспорт</a>
+      <a href="#accept">Приёмка</a>
+      <a href="#next">Развитие</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<header class="hero">
+  <p class="kicker">Требования к продукту · версия 1.0</p>
+  <h1>Seis3D</h1>
+  <p>Веб-сервис, который по контуру участка сам строит систему наблюдений 3D сейсморазведки.</p>
+  <figure class="heroviz" aria-label="Схема ортогональной системы наблюдений внутри контура участка">
+    <svg id="heroSvg" viewBox="0 0 1100 560" role="img"></svg>
+    <figcaption class="tag">
+      <span class="key"><i style="background:var(--rcv)"></i>линии ПП, азимут 30°</span>
+      <span class="key"><i style="background:var(--src)"></i>линии ПВ, 120°</span>
+      <span class="key"><i style="background:var(--text)"></i>контур участка</span>
+    </figcaption>
+  </figure>
+  <div class="meta">
+    <div><b>Статус</b><span>Прототип реализован</span></div>
+    <div><b>Платформа</b><span>Браузер, десктоп и телефон</span></div>
+    <div><b>Формат</b><span>Одна HTML-страница</span></div>
+    <div><b>Язык</b><span>Русский, числа ru-RU</span></div>
+    <div><b>Дата</b><span>08.10.2026</span></div>
+  </div>
+</header>
+
+<section class="s" id="goal">
+  <h2>Три задачи. Один сервис.</h2>
+  <p class="lead">Исходный запрос состоит из трёх частей. Каждая превращена в набор проверяемых требований.</p>
+  <div class="prompts">
+    <article class="prompt">
+      <div class="n" style="background:var(--rcv)">1</div>
+      <h3>Расчёт съёмки</h3>
+      <q>Подсчёт должен покрывать загружаемый контур, профили по азимуту, шаг ПП и шаг ПВ, линии считает сам, годограф.</q>
+      <ul>
+        <li>Контур из CSV, TXT, KML или нарисованный вручную</li>
+        <li>Линии ПП по азимуту, линии ПВ перпендикулярно</li>
+        <li>Карта кратности и контроль покрытия контура</li>
+        <li>Годографы отражённых, прямой и преломлённых волн</li>
+      </ul>
+    </article>
+    <article class="prompt">
+      <div class="n" style="background:var(--text);color:var(--bg)">2</div>
+      <h3>Дизайн как у Apple</h3>
+      <q>Дизайн сайта по Apple, возможность загрузки формата JPEG.</q>
+      <ul>
+        <li>Шрифт SF Pro, стеклянная шапка, крупные заголовки</li>
+        <li>Параметры в виде списков iOS «Настройки»</li>
+        <li>Светлая и тёмная темы, адаптивность</li>
+        <li>JPEG как подложка карты с привязкой</li>
+      </ul>
+    </article>
+    <article class="prompt">
+      <div class="n" style="background:#1d6f42">3</div>
+      <h3>Выгрузка в Excel</h3>
+      <q>Возможность выгрузки параметров дизайна съёмки в Excel.</q>
+      <ul>
+        <li>Книга .xlsx из восьми листов</li>
+        <li>Координаты всех ПП и ПВ с пикетами</li>
+        <li>Параметры, итоги, модель, годографы</li>
+        <li>Схема и годограф дополнительно в JPEG</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section class="s">
+  <h2>Для кого.</h2>
+  <p class="lead">Сервис рассчитан на специалистов, которым нужна быстрая и наглядная оценка проекта съёмки.</p>
+  <div class="users">
+    <div class="user"><h4>Геофизик-проектировщик</h4><p>Подбирает параметры системы наблюдений и проверяет кратность и удаления.</p></div>
+    <div class="user"><h4>Инженер полевой партии</h4><p>Оценивает объём работ: число пунктов, линий и километров профилей.</p></div>
+    <div class="user"><h4>Руководитель проекта</h4><p>Получает сводку параметров и схему участка для обсуждения и отчёта.</p></div>
+  </div>
+</section>
+
+<section class="s" id="flow">
+  <h2>От контура до отчёта.</h2>
+  <p class="lead">Пользователь вводит данные один раз, всё остальное пересчитывается автоматически при любом изменении.</p>
+  <div class="flow">
+    <svg viewBox="0 0 1100 300" role="img" aria-label="Схема процесса: ввод, расчёт, результат">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--text2)"/></marker>
+      </defs>
+      <g font-family="-apple-system,Inter,sans-serif" letter-spacing="-.2">
+        <text x="20" y="26" font-size="13" fill="var(--text2)">Ввод</text>
+        <text x="390" y="26" font-size="13" fill="var(--text2)">Расчёт</text>
+        <text x="820" y="26" font-size="13" fill="var(--text2)">Результат</text>
+
+        <g>
+          <rect x="20" y="44" width="250" height="62" rx="14" fill="var(--fill)"/>
+          <text x="38" y="71" font-size="16" font-weight="600" fill="var(--text)">Контур участка</text>
+          <text x="38" y="92" font-size="13" fill="var(--text2)">CSV · TXT · KML · рисование</text>
+          <rect x="20" y="120" width="250" height="62" rx="14" fill="var(--fill)"/>
+          <text x="38" y="147" font-size="16" font-weight="600" fill="var(--text)">Подложка JPEG</text>
+          <text x="38" y="168" font-size="13" fill="var(--text2)">привязка: угол и ширина, м</text>
+          <rect x="20" y="196" width="250" height="84" rx="14" fill="var(--fill)"/>
+          <text x="38" y="223" font-size="16" font-weight="600" fill="var(--text)">Параметры</text>
+          <text x="38" y="244" font-size="13" fill="var(--text2)">азимут, шаги ПП и ПВ,</text>
+          <text x="38" y="263" font-size="13" fill="var(--text2)">межлинейные, расстановка, модель</text>
+        </g>
+        <path d="M120 182v14" stroke="var(--text2)" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+        <text x="132" y="193" font-size="11" fill="var(--text2)">оцифровка</text>
+
+        <g>
+          <rect x="390" y="44" width="330" height="50" rx="14" fill="color-mix(in srgb,var(--rcv) 14%,transparent)"/>
+          <text x="408" y="74" font-size="15" font-weight="600" fill="var(--text)">Поворот осей по азимуту</text>
+          <rect x="390" y="104" width="330" height="50" rx="14" fill="color-mix(in srgb,var(--rcv) 14%,transparent)"/>
+          <text x="408" y="134" font-size="15" font-weight="600" fill="var(--text)">Линии ПП и ПВ, обрезка по контуру</text>
+          <rect x="390" y="164" width="330" height="50" rx="14" fill="color-mix(in srgb,var(--rcv) 14%,transparent)"/>
+          <text x="408" y="194" font-size="15" font-weight="600" fill="var(--text)">Кратность по бинам ПП/2 × ПВ/2</text>
+          <rect x="390" y="224" width="330" height="50" rx="14" fill="color-mix(in srgb,var(--purple) 16%,transparent)"/>
+          <text x="408" y="254" font-size="15" font-weight="600" fill="var(--text)">Годограф по скоростной модели</text>
+          <path d="M555 94v10M555 154v10" stroke="var(--text2)" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+        </g>
+
+        <g>
+          <rect x="820" y="44" width="260" height="62" rx="14" fill="var(--fill)"/>
+          <text x="838" y="71" font-size="16" font-weight="600" fill="var(--text)">Карта и итоги</text>
+          <text x="838" y="92" font-size="13" fill="var(--text2)">схема, кратность, 16 показателей</text>
+          <rect x="820" y="120" width="260" height="62" rx="14" fill="color-mix(in srgb,#1d6f42 16%,transparent)"/>
+          <text x="838" y="147" font-size="16" font-weight="600" fill="var(--text)">Книга Excel</text>
+          <text x="838" y="168" font-size="13" fill="var(--text2)">8 листов, все координаты</text>
+          <rect x="820" y="196" width="260" height="84" rx="14" fill="var(--fill)"/>
+          <text x="838" y="223" font-size="16" font-weight="600" fill="var(--text)">JPEG</text>
+          <text x="838" y="244" font-size="13" fill="var(--text2)">схема 3000 px,</text>
+          <text x="838" y="263" font-size="13" fill="var(--text2)">годограф 2400 × 1500 px</text>
+        </g>
+
+        <path d="M275 75 C330 75 335 69 384 69" stroke="var(--text2)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+        <path d="M275 238 C330 238 335 129 384 129" stroke="var(--text2)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+        <path d="M275 250 C330 250 335 249 384 249" stroke="var(--text2)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+        <path d="M725 189 C770 189 775 75 814 75" stroke="var(--text2)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+        <path d="M725 189 C770 189 775 151 814 151" stroke="var(--text2)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+        <path d="M725 249 C770 249 775 238 814 238" stroke="var(--text2)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section class="s" id="calc">
+  <h2>Как считается съёмка.</h2>
+  <p class="lead">Ортогональная система: линии ПВ перпендикулярны линиям ПП и смещены на полшага, чтобы средние точки равномерно заполняли бины.</p>
+  <div class="split">
+    <div class="card">
+      <h3>Геометрия и расстановка</h3>
+      <p class="sub">Одна активная расстановка вокруг ПВ: 12 линий × 240 каналов.</p>
+      <svg viewBox="0 0 520 380" role="img" aria-label="Схема расстановки: линии ПП, линии ПВ, активный ПВ и его расстановка">
+        <g font-family="-apple-system,Inter,sans-serif">
+          <rect x="130" y="70" width="260" height="240" rx="10" fill="color-mix(in srgb,var(--rcv) 10%,transparent)" stroke="var(--rcv)" stroke-dasharray="5 4"/>
+          <g stroke="var(--rcv)" stroke-width="2" id="rl"></g>
+          <g stroke="var(--src)" stroke-width="2" id="sl"></g>
+          <circle cx="262" cy="190" r="8" fill="var(--src)" stroke="var(--surface)" stroke-width="3"/>
+          <text x="276" y="184" font-size="13" fill="var(--text)" font-weight="600">ПВ</text>
+          <text x="140" y="62" font-size="12" fill="var(--rcv)">активная расстановка</text>
+          <path d="M20 350h72" stroke="var(--text2)"/><text x="20" y="340" font-size="12" fill="var(--text2)">линия ПП</text>
+          <g transform="translate(470 40)"><path d="M0 26V0" stroke="var(--text)" stroke-width="2"/><path d="M-6 8L0 0L6 8" fill="none" stroke="var(--text)" stroke-width="2"/><text x="-4" y="42" font-size="12" fill="var(--text)">С</text></g>
+          <path d="M440 120h40M440 160h40" stroke="var(--text2)"/><path d="M470 120v40" stroke="var(--text2)" marker-start="url(#ar)" marker-end="url(#ar)"/>
+          <text x="420" y="146" font-size="12" fill="var(--text2)" text-anchor="end">ЛПП</text>
+        </g>
+      </svg>
+    </div>
+    <div class="card">
+      <h3>Годограф</h3>
+      <p class="sub">Отражённые волны — гипербола со среднеквадратичной скоростью.</p>
+      <svg viewBox="0 0 520 380" role="img" aria-label="Годографы трёх отражающих горизонтов и прямой волны" id="hodoSvg"></svg>
+    </div>
+  </div>
+
+  <div class="formulas" style="margin-top:20px">
+    <div class="f"><span>Бин</span><code>ПП/2 × ПВ/2</code><em>50/50 м → 25 × 25 м</em></div>
+    <div class="f"><span>Кратность вдоль линий</span><code>каналы · шаг ПП / (2 · ЛПВ)</code><em>240 · 50 / 600 = 20</em></div>
+    <div class="f"><span>Кратность поперёк линий</span><code>активных линий / 2</code><em>12 / 2 = 6</em></div>
+    <div class="f"><span>Номинальная кратность</span><code>20 × 6 = 120</code><em>подтверждена фактическим расчётом</em></div>
+    <div class="f"><span>Xmax</span><code>√((каналы·ПП/2)² + (линии·ЛПП/2)²)</code><em>√(6000² + 1800²) ≈ 6264 м</em></div>
+    <div class="f"><span>Годограф отражённой волны</span><code>t(x) = √(t₀² + x² / Vrms²)</code><em>t₀ = Σ 2h/V, Vrms по интервальным скоростям</em></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3>Входные параметры</h3>
+    <p class="sub">Значения по умолчанию соответствуют контрольному примеру.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Параметр</th><th class="r">По умолчанию</th><th class="r">Ед.</th><th>Ограничение</th></tr></thead>
+      <tbody>
+        <tr><td>Азимут линий ПП (от севера по часовой)</td><td class="r">30</td><td class="r">°</td><td>любое число</td></tr>
+        <tr><td>Шаг ПП</td><td class="r">50</td><td class="r">м</td><td>больше нуля</td></tr>
+        <tr><td>Шаг ПВ</td><td class="r">50</td><td class="r">м</td><td>больше нуля</td></tr>
+        <tr><td>Расстояние между линиями ПП</td><td class="r">300</td><td class="r">м</td><td>больше нуля</td></tr>
+        <tr><td>Расстояние между линиями ПВ</td><td class="r">300</td><td class="r">м</td><td>больше нуля</td></tr>
+        <tr><td>Буфер за контуром</td><td class="r">0</td><td class="r">м</td><td>ноль и больше</td></tr>
+        <tr><td>Точка привязки сетки</td><td class="r">авто</td><td class="r">м</td><td>первая вершина контура</td></tr>
+        <tr><td>Активных линий ПП</td><td class="r">12</td><td class="r">шт</td><td>целое, от 1</td></tr>
+        <tr><td>Каналов на линии</td><td class="r">240</td><td class="r">шт</td><td>целое, от 1</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section class="s" id="req">
+  <h2>Функциональные требования.</h2>
+  <p class="lead">Must — обязательно для версии 1.0. Should — желательно, реализовано в прототипе.</p>
+  <div class="reqgrid">
+    <div class="req"><h4>Контур участка <small>7</small></h4><ul>
+      <li><span class="id">F-1.1</span><span>Загрузка CSV и TXT со строками «X Y»</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-1.2</span><span>KML с пересчётом в UTM</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-1.3</span><span>Порядок осей: В·С или С·В (геодезия)</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-1.4</span><span>Ручной ввод координат</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-1.5</span><span>Оцифровка кликами на карте</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-1.6</span><span>Автозамыкание контура</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-1.7</span><span>Площадь контура</span><span class="pill must">Must</span></li>
+    </ul></div>
+    <div class="req"><h4>Линии ПП и ПВ <small>7</small></h4><ul>
+      <li><span class="id">F-3.1</span><span>Линии ПП по азимуту покрывают контур</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-3.2</span><span>Линии ПВ перпендикулярно ПП</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-3.3</span><span>Расстановка с шагами и обрезка по контуру</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-3.4</span><span>Смещение ПВ на полшага</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-3.5</span><span>Единая нумерация линий и пикетов</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-3.6</span><span>Отрезки для невыпуклого контура</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-3.7</span><span>Защита от перегрузки (> 2,5 млн пунктов)</span><span class="pill must">Must</span></li>
+    </ul></div>
+    <div class="req"><h4>Кратность <small>6</small></h4><ul>
+      <li><span class="id">F-5.1</span><span>Фактическая кратность по бинам</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-5.2</span><span>Цветовая карта с легендой</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-5.3</span><span>Средняя и максимальная в контуре</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-5.4</span><span>Доля контура с полной кратностью</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-5.5</span><span>Подсказка рекомендуемого буфера</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-5.6</span><span>Расчёт без блокировки интерфейса</span><span class="pill must">Must</span></li>
+    </ul></div>
+    <div class="req"><h4>Годограф <small>7</small></h4><ul>
+      <li><span class="id">F-6.1</span><span>Модель пластов: мощность и Vинт</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-6.2</span><span>Отражённые волны по каждому ОГ</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-6.3</span><span>Прямая волна</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-6.4</span><span>Преломлённые волны</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-6.5</span><span>Удаление по умолчанию равно Xmax</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-6.6</span><span>График с временем вниз и отметкой Xmax</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-6.7</span><span>Таблица: t₀, Vrms, поправка, растяжка</span><span class="pill must">Must</span></li>
+    </ul></div>
+    <div class="req"><h4>Карта <small>7</small></h4><ul>
+      <li><span class="id">F-7.1</span><span>Перемещение и масштаб, «весь участок»</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-7.2</span><span>Слои ПП, ПВ, контур, подложка</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-7.3</span><span>Режимы «Схема» и «Кратность»</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-7.4</span><span>Отдельные пункты при приближении</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-7.5</span><span>Масштабная линейка и север</span><span class="pill should">Should</span></li>
+      <li><span class="id">F-7.6</span><span>Координаты и кратность под курсором</span><span class="pill must">Must</span></li>
+      <li><span class="id">F-7.7</span><span>Пример участка</span><span class="pill should">Should</span></li>
+    </ul></div>
+    <div class="req"><h4>Подложка JPEG <small>4</small></h4><ul>
+      <li><span class="id">J-1</span><span>Загрузка JPEG (и PNG) как подложки</span><span class="pill must">Must</span></li>
+      <li><span class="id">J-2</span><span>Привязка: угол и ширина в метрах</span><span class="pill must">Must</span></li>
+      <li><span class="id">J-3</span><span>Автопривязка по габаритам контура</span><span class="pill should">Should</span></li>
+      <li><span class="id">J-4</span><span>Оцифровка контура по подложке</span><span class="pill must">Must</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="s" id="design">
+  <h2>Дизайн в духе Apple.</h2>
+  <p class="lead">Спокойная палитра, системный шрифт, крупная типографика и элементы управления, знакомые по iOS и macOS.</p>
+  <div class="design">
+    <div class="card">
+      <h3>Палитра</h3>
+      <p class="sub">Тёмная тема включается автоматически по настройке системы.</p>
+      <div class="swatches">
+        <div class="sw"><i style="background:#f5f5f7"></i><b>Фон</b>#F5F5F7</div>
+        <div class="sw"><i style="background:#ffffff"></i><b>Поверхность</b>#FFFFFF</div>
+        <div class="sw"><i style="background:#1d1d1f"></i><b>Текст</b>#1D1D1F</div>
+        <div class="sw"><i style="background:#0071e3"></i><b>Акцент, ПП</b>#0071E3</div>
+        <div class="sw"><i style="background:#ff2d55"></i><b>ПВ</b>#FF2D55</div>
+      </div>
+      <h3 style="margin-top:30px">Структура страницы</h3>
+      <div class="layout">
+        <div><b>Шапка</b><span>навигация, «Скачать Excel»</span></div>
+        <div><b>Первый экран</b><span>заголовок, загрузка контура</span></div>
+        <div><b>Рабочая область</b><span>параметры слева, карта справа</span></div>
+        <div><b>Итоги расчёта</b><span>16 показателей</span></div>
+        <div><b>Годограф</b><span>модель, график, таблица</span></div>
+        <div><b>Экспорт</b><span>Excel и JPEG</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Элементы интерфейса</h3>
+      <p class="sub">Параметры оформлены как сгруппированные списки «Настроек».</p>
+      <div class="ios">
+        <p class="grp">Сеть наблюдений (ортогональная)</p>
+        <div class="lst">
+          <div class="rw"><span>Азимут линий ПП</span><span>30 °</span></div>
+          <div class="rw"><span>Шаг ПП</span><span>50 м</span></div>
+          <div class="rw"><span>Шаг ПВ</span><span>50 м</span></div>
+          <div class="rw"><span>Между линиями ПП</span><span>300 м</span></div>
+          <div class="rw"><span>Между линиями ПВ</span><span>300 м</span></div>
+        </div>
+      </div>
+      <div class="segdemo" aria-hidden="true"><span class="on">Схема</span><span>Кратность</span></div>
+      <div class="btnrow" aria-hidden="true"><span class="b">Загрузить контур</span><span class="b g">Выбрать JPEG</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="export">
+  <h2>Всё уходит в Excel.</h2>
+  <p class="lead">Книга .xlsx из восьми листов. Координаты выгружаются в порядке осей, выбранном пользователем.</p>
+  <div class="sheets">
+    <div class="sheet"><b>Параметры</b><span>Входные данные, бин, кратности, Xmax, плотности, объёмы, статистика</span></div>
+    <div class="sheet"><b>Контур</b><span>Номер вершины, X, Y</span></div>
+    <div class="sheet"><b>Линии ПП</b><span>Отрезки: пикеты и координаты начала и конца, длина</span></div>
+    <div class="sheet"><b>Линии ПВ</b><span>То же для линий возбуждения</span></div>
+    <div class="sheet"><b>Точки ПП</b><span>Линия, пикет, X, Y каждого пункта приёма</span></div>
+    <div class="sheet"><b>Точки ПВ</b><span>Линия, пикет, X, Y каждого пункта возбуждения</span></div>
+    <div class="sheet"><b>Модель</b><span>Пласты, t₀, Vrms, поправка, растяжка, X/H</span></div>
+    <div class="sheet"><b>Годограф</b><span>Времена прямой, отражённых и преломлённых волн</span></div>
+  </div>
+  <div class="exrow">
+    <div class="card"><h3>Схема JPEG</h3><p class="sub" style="margin:0">3000 px по ширине, белый фон, заголовок и строка параметров, карта кратности с легендой.</p></div>
+    <div class="card"><h3>Годограф JPEG</h3><p class="sub" style="margin:0">2400 × 1500 px, все волны и отметка Xmax.</p></div>
+  </div>
+</section>
+
+<section class="s">
+  <h2>Качество работы.</h2>
+  <p class="lead">Нефункциональные требования.</p>
+  <div class="nfr">
+    <div><b>Приватность</b><span>Расчёт полностью в браузере, данные никуда не отправляются</span></div>
+    <div><b>Один файл</b><span>Самодостаточный HTML; внешние только SheetJS и шрифт Inter</span></div>
+    <div><b>Скорость</b><span>Участок 140 км² (≈ 9 300 ПП и 9 300 ПВ) — менее секунды</span></div>
+    <div><b>Отзывчивость</b><span>Кратность считается порциями, интерфейс не замирает</span></div>
+    <div><b>Понятные ошибки</b><span>Что пошло не так и как исправить</span></div>
+    <div><b>Локализация</b><span>Русский интерфейс, числа в формате ru-RU</span></div>
+  </div>
+</section>
+
+<section class="s" id="accept">
+  <h2>Критерии приёмки.</h2>
+  <p class="lead">Контрольный пример: участок 140 км², шаги 50/50 м, межлинейные 300/300 м, 12 линий × 240 каналов.</p>
+  <div class="checks" id="checks"></div>
+</section>
+
+<section class="s" id="next">
+  <h2>Что дальше.</h2>
+  <p class="lead">Вне рамок версии 1.0 — кандидаты на следующие версии.</p>
+  <div class="road">
+    <div><span>Системы наблюдений</span>Кирпичная, наклонная и зигзагообразная</div>
+    <div><span>Форматы</span>Экспорт SPS (R, S, X), DXF и Shape</div>
+    <div><span>Препятствия</span>Зоны запрета, смещение и пропуск ПВ</div>
+    <div><span>Анализ бинов</span>Распределение удалений и азимутов, розы-диаграммы</div>
+    <div><span>Привязка</span>По опорным точкам, поддержка GeoTIFF</div>
+    <div><span>Координаты</span>СК-42, ГСК-2011, UTM с пересчётом</div>
+    <div><span>Годограф</span>Рельеф, статические поправки, мьютинг</div>
+    <div><span>Проекты</span>Сохранение и совместная работа</div>
+  </div>
+</section>
+
+<footer>
+  <div class="line"><span>Seis3D · требования к продукту, версия 1.0</span><span>08.10.2026</span></div>
+</footer>
+</main>
+
+<script>
+"use strict";
+const NS="http://www.w3.org/2000/svg";
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e};
+
+/* hero: orthogonal survey grid clipped by an irregular contour */
+(function(){
+  const svg=document.getElementById("heroSvg");
+  const poly=[[240,120],[620,70],[880,150],[930,330],[760,470],[430,500],[190,430],[150,250]];
+  const pts=poly.map(p=>p.join(",")).join(" ");
+  const defs=el("defs",{},svg);
+  const cp=el("clipPath",{id:"cp"},defs);el("polygon",{points:pts},cp);
+  el("polygon",{points:pts,fill:"var(--rcv)","fill-opacity":".05"},svg);
+  const g=el("g",{"clip-path":"url(#cp)"},svg);
+  const az=30*Math.PI/180,s=Math.sin(az),c=Math.cos(az),cx=550,cy=290,L=900;
+  // receiver lines: direction along azimuth (screen: x=s, y=-c); spaced across
+  const draw=(dir,perp,spacing,color,w,delay0)=>{
+    let i=0;
+    for(let o=-560;o<=560;o+=spacing,i++){
+      const mx=cx+perp[0]*o,my=cy+perp[1]*o;
+      el("line",{x1:mx-dir[0]*L,y1:my-dir[1]*L,x2:mx+dir[0]*L,y2:my+dir[1]*L,stroke:color,"stroke-width":w,
+        class:"ln",style:`--l:${2*L};--d:${delay0+i*0.03}s`,"stroke-linecap":"round"},g);
+    }
+  };
+  draw([s,-c],[c,s],34,"var(--rcv)",1.6,0);
+  draw([c,s],[s,-c],34,"var(--src)",1.2,.35);
+  el("polygon",{points:pts,fill:"none",stroke:"var(--text)","stroke-width":"2.5","stroke-linejoin":"round"},svg);
+  poly.forEach(p=>el("circle",{cx:p[0],cy:p[1],r:4.5,fill:"var(--surface)",stroke:"var(--text)","stroke-width":"2"},svg));
+})();
+
+/* patch diagram */
+(function(){
+  const rl=document.getElementById("rl"),sl=document.getElementById("sl");
+  for(let i=0;i<7;i++){const y=70+i*40;el("line",{x1:30,y1:y,x2:490,y2:y,"stroke-opacity":(y>=70&&y<=310)?1:.4},rl)}
+  for(let i=0;i<6;i++){const x=62+i*80;el("line",{x1:x,y1:40,x2:x,y2:330,"stroke-opacity":.55},sl)}
+  el("line",{x1:262,y1:40,x2:262,y2:330,"stroke-width":3},sl);
+})();
+
+/* hodograph mini chart */
+(function(){
+  const svg=document.getElementById("hodoSvg");
+  const layers=[{h:500,v:1800},{h:800,v:2500},{h:1200,v:3200}];
+  let t=0,s=0;const M=layers.map(l=>{const dt=2*l.h/l.v;t+=dt;s+=l.v*l.v*dt;return {t0:t,vrms:Math.sqrt(s/t)}});
+  const X=6264,T=3.6,ml=56,mt=40,pw=440,ph=310,xs=x=>ml+x/X*pw,ys=v=>mt+v/T*ph;
+  const f="-apple-system,Inter,sans-serif";
+  for(let x=0;x<=6000;x+=2000){el("line",{x1:xs(x),y1:mt,x2:xs(x),y2:mt+ph,stroke:"var(--sep)"},svg);const tx=el("text",{x:xs(x),y:mt-10,"font-size":11,"text-anchor":"middle",fill:"var(--text2)","font-family":f},svg);tx.textContent=x.toLocaleString("ru-RU")}
+  for(let v=0;v<=3.5;v+=.5){el("line",{x1:ml,y1:ys(v),x2:ml+pw,y2:ys(v),stroke:"var(--sep)"},svg);const tx=el("text",{x:ml-8,y:ys(v)+4,"font-size":11,"text-anchor":"end",fill:"var(--text2)","font-family":f},svg);tx.textContent=(v*1000).toLocaleString("ru-RU")}
+  const lab=el("text",{x:ml,y:16,"font-size":12,fill:"var(--text)","font-weight":600,"font-family":f},svg);lab.textContent="Удаление, м · t, мс";
+  el("line",{x1:xs(0),y1:ys(0),x2:xs(X),y2:ys(X/1800),stroke:"var(--text2)","stroke-width":1.6,"stroke-dasharray":"7 5"},svg);
+  const cols=["var(--rcv)","var(--ok)","var(--warn)"];
+  M.forEach((m,i)=>{
+    let d="";for(let q=0;q<=80;q++){const x=X*q/80,tt=Math.sqrt(m.t0*m.t0+x*x/(m.vrms*m.vrms));d+=(q?"L":"M")+xs(x).toFixed(1)+" "+ys(tt).toFixed(1)}
+    el("path",{d,fill:"none",stroke:cols[i],"stroke-width":2.6},svg);
+    const tt=Math.sqrt(m.t0*m.t0+X*X/(m.vrms*m.vrms));
+    const tx=el("text",{x:xs(X)-4,y:ys(tt)-6,"font-size":12,"text-anchor":"end",fill:cols[i],"font-weight":600,"font-family":f},svg);tx.textContent="ОГ "+(i+1);
+  });
+  const tx=el("text",{x:xs(2600),y:ys(2600/1800)+16,"font-size":11,fill:"var(--text2)","font-family":f},svg);tx.textContent="прямая волна";
+})();
+
+/* acceptance checks */
+(function(){
+  const items=[
+    ["Линии ПП строятся по азимуту, линии ПВ — перпендикулярно; все пункты внутри контура или буфера.","50 ПП · 46 ПВ линий"],
+    ["Изменение любого параметра сразу пересчитывает линии, показатели, кратность и годограф.","< 1 с"],
+    ["Максимальная фактическая кратность равна номинальной.","120 = 120"],
+    ["С буфером в половину расстановки полнократно покрыто не менее 99% контура.","99,7% при 3000 м"],
+    ["Годограф при x = 0 даёт t₀ = Σ 2h/V и монотонно растёт с удалением.","t₀ = Σ 2h/V"],
+    ["JPEG отображается как подложка, по нему можно обвести контур.","JPEG · PNG"],
+    ["Книга Excel открывается в Excel и LibreOffice и содержит все 8 листов.","8 листов"],
+    ["JPEG схемы и годографа сохраняются и открываются стандартными просмотрщиками.","2 файла"],
+    ["Корректное отображение в светлой и тёмной теме, на десктопе и телефоне.","2 темы"]
+  ];
+  const box=document.getElementById("checks");
+  box.innerHTML=items.map(([t,v])=>`<div class="check"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="var(--ok)"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><p>${t}</p><span class="val">${v}</span></div>`).join("");
+})();
+</script>
+</body>
+</html>
